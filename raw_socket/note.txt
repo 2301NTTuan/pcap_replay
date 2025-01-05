@@ -1,0 +1,36 @@
+    ssize_t len = recv(sock, buffer, sizeof(buffer), 0);
+    if (len == -1) {
+        perror("Recv failed");
+        close(sock);
+        return 1;
+    }
+
+    printf("Received a packet of size %zd bytes\n", len);
+    // Process received packet (you can cast to appropriate structures like IP or Ethernet headers)
+    struct ethhdr *eth_header = (struct ethhdr *)buffer;
+    printf("Destination MAC: %s\n", ether_ntoa((struct ether_addr *)eth_header->h_dest));
+    printf("Source MAC: %s\n", ether_ntoa((struct ether_addr *)eth_header->h_source));
+
+    // Step 5: Sending a packet (example)
+    unsigned char send_packet[60]; // Prepare packet to send
+    struct ethhdr *eth_send = (struct ethhdr *)send_packet;
+    memset(eth_send, 0, sizeof(struct ethhdr));
+
+    // Set MAC address for the packet (example: sending to a broadcast address)
+    memcpy(eth_send->h_dest, "\xff\xff\xff\xff\xff\xff", 6);  // Broadcast address
+    memcpy(eth_send->h_source, "\x00\x11\x22\x33\x44\x55", 6); // Set source MAC address
+
+    eth_send->h_proto = htons(ETH_P_IP);  // Set protocol type (e.g., IP)
+
+    // Send the packet
+    ssize_t sent_len = sendto(sock, send_packet, sizeof(send_packet), 0, (struct sockaddr *)&sa, sizeof(sa));
+    if (sent_len == -1) {
+        perror("Send failed");
+        close(sock);
+        return 1;
+    }
+
+    printf("Sent a packet of size %zd bytes\n", sent_len);
+
+    // Step 6: Close socket
+    close(sock);
